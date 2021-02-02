@@ -33,7 +33,7 @@ public class Store
 {
     public Guid Create(Foo foo)
     {
-        // save to file
+        // save to database
         return Guid.NewGuid();
     }
 }
