@@ -1,99 +1,54 @@
-public class Controller
+public class FooManager
 {
-    private readonly ControllerConnection _controllerCommunication;
-    private readonly Email _email;
-    private readonly List<Device> _devices;
+    private readonly Store _store;
+    private readonly Logger _logger;
 
-    public Controller()
+    public FooManager()
     {
-        _controllerCommunication = new ControllerConnection();
-        _controllerCommunication.DeviceStatusChanged += OnDeviceStatusChanged;
-        _email = new Email();
-        _devices = new List<Device>();
+        _store = new Store();
+        _logger = new Logger();
     }
 
-    public void AddDevice(string name)
+    public Foo Add(string name)
     {
-        var device = new Device(name);
-        if (_controllerCommunication.AddDevices(device))
+        try
         {
-            device.Status = _controllerCommunication.ConnectDevice(device.Id);
-            if (device.Status == Status.Error)
+            string fooName = name.ToUpper();
+            var foo = new Foo
             {
-                _email.Send($"Device {device.Name}({device.Id}) has an error");
-            }
-            _devices.Add(device);
+                Name = fooName
+            };
+            foo.Id = _store.Create(foo);
+            return foo;
         }
-        else
+        catch (Exception exception)
         {
-            _email.Send($"Failed to add device {device.Name}({device.Id})");
-        }
-    }
-
-    public Device FindDevice(Guid id)
-    {
-        return _devices
-            .FirstOrDefault(d => d.Id == id);
-    }
-
-    private void OnDeviceStatusChanged(Device device, Status previousStatus)
-    {
-        if (previousStatus == Status.Connected && device.Status == Status.Error)
-        {
-            _email.Send($"Device {device.Name}({device.Id}) has an error");
+            _logger.Write($"Failed to add '{name}': {exception}");
+            return null;
         }
     }
 }
 
-public delegate void DeviceStatusChanged(Device currentDevice, Status previousStatus);
-
-public class ControllerConnection
+public class Store
 {
-    public event DeviceStatusChanged DeviceStatusChanged;
-
-    public bool AddDevices(Device device)
+    public Guid Create(Foo foo)
     {
-        // logic would be here
-        return true;
-    }
-
-    public Status ConnectDevice(Guid deviceId)
-    {
-        // logic would be here
-        return Status.Connected;
-    }
-
-    // logic would be here to fire event
-}
-
-public class Email
-{
-    public void Send(string message)
-    {
-        // send logic
+        // save to file
+        return Guid.NewGuid();
     }
 }
 
-public enum Status
+public class Logger
 {
-    Unknown,
-    Disconnected,
-    Connected,
-    Error
+    public void Write(string message)
+    {
+        Console.WriteLine(message);
+    }
 }
 
-public class Device
+public class Foo
 {
-    public Device(string name)
-    {
-        Id = Guid.NewGuid();
-        Name = name;
-        Status = Status.Unknown;
-    }
-
-    public Guid Id { get; }
+    public Guid? Id { get; set; }
 
     public string Name { get; set; }
-
-    public Status Status { get; set; }
 }
